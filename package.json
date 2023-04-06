@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "./node_modules/.bin/nodemon src/index.js",
     "lint": "./node_modules/.bin/eslint **/*.js",
-    "test": "cross-env NODE_ENV=test ./node_modules/.bin/mocha --exit"
+    "test": "cross-env NODE_ENV=test ./node_modules/.bin/mocha --exit",
+    "start": "./src/index.js"
   },
   "keywords": [],
   "author": "Kasun Vithanage",
