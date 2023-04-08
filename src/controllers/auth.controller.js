@@ -13,8 +13,8 @@ exports.register = async (req, res, next) => {
     const userData = req.body;
     const user = new User(userData);
     console.log("user data while creating", user, req.body);
-    const savedUser = await user?.save();
-    console.log("saved user", savedUser);
+    const savedUser = await user.save();
+    // console.log("saved user", savedUser);
     userData.id = savedUser.id;
     const userDetails =
       savedUser.role === "applicant"
@@ -29,7 +29,6 @@ exports.register = async (req, res, next) => {
     res.status(httpStatus.CREATED);
     res.send(response);
   } catch (error) {
-    console.log("something wrong in user while creating");
     return next(User.checkDuplicateEmailError(error));
   }
 };

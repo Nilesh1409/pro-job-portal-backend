@@ -42,7 +42,6 @@ const userSchema = new Schema(
 );
 
 userSchema.pre("save", async function save(next) {
-  console.log("in user schema");
   try {
     if (!this.isModified("password")) {
       return next();
@@ -85,6 +84,7 @@ userSchema.statics = {
           field: "phone",
           location: "body",
           messages: ["Phone number already taken"],
+          errors: err,
         },
       ];
       error.status = httpStatus.CONFLICT;
