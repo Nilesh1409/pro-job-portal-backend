@@ -77,7 +77,7 @@ userSchema.statics = {
   roles,
 
   checkDuplicateEmailError(err) {
-    if (err.code === 11000) {
+    if (err.code === 409) {
       var error = new Error("Phone number already taken");
       error.errors = [
         {

@@ -20,6 +20,7 @@ const recommendationCache = require("../../middlewares/recommendationCache");
 // router.get('/applied', auth(['applicant']), applicationController.fetchApplied)
 // router.get('/saved/count', auth(['applicant']), applicationController.fetchSavedCount)
 // router.get('/saved', auth(['applicant']), applicationController.fetchSaved)
+console.log("in job file");
 router.get("/", auth(), jobsController.get);
 router.post("/", auth(["recruiter"]), validator(create), jobsController.post);
 // router.get('/recommendation', auth(['applicant']), recommendationCache, jobsController.recommendation)
@@ -41,6 +42,11 @@ router.post(
   "/applied/:jobId",
   validator(AppliedForJOb),
   applicationController.checkUserApplication
+);
+router.get(
+  "/appliedJobs/:applicantId",
+  // validator(AppliedForJOb),
+  applicationController.getAppliedJobs
 );
 // router.post('/:jobId/easyApply', auth(['applicant']), validator(jobId), validator(easyApply), applicationController.easyApply)
 

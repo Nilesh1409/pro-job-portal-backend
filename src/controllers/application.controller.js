@@ -150,6 +150,33 @@ exports.checkUserApplication = async (req, res, next) => {
   }
 };
 
+exports.getAppliedJobs = async (req, res, next) => {
+  try {
+    const { applicantId } = req.params;
+
+    // if (!mongoose.Types.ObjectId.isValid(applicantId)) {
+    //   throw new APIError(`Invalid applicantId`, httpStatus.BAD_REQUEST);
+    // }
+
+    const applications = await Application.find({ applicantId });
+
+    const appliedJobIds = applications[0].appliedJobs;
+
+    // Retrieve the actual job objects using the applied job Ids
+    const appliedJobs = await Job.find({ _id: { $in: appliedJobIds } });
+
+    let payload = {
+      phone: applications[0].phone,
+      name: applications[0].name,
+      applied_jobs: appliedJobs,
+    };
+    const response = { payload };
+    res.status(httpStatus.OK).json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.save = async (req, res, next) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(req.params.jobId))

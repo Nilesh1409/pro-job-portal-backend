@@ -11,6 +11,7 @@ module.exports = {
       description: Joi.string().required(),
       category: Joi.string().max(128).required(),
       type: Joi.string().max(128).required(),
+      city: Joi.string().max(128).required(),
       location: Joi.object().keys({
         street: Joi.string().max(128).required(),
         city: Joi.string().max(128).required(),
