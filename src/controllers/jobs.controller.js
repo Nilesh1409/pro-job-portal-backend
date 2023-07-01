@@ -44,6 +44,20 @@ exports.post = async (req, res, next) => {
     console.log("createdJob", createdJob);
     if (!createdJob)
       throw new APIError(`Job not created`, httpStatus.INTERNAL_SERVER_ERROR);
+    const updatedRecruiter = await Recruiter.findByIdAndUpdate(
+      req.user._id,
+      { $push: { jobs: createdJob._id } },
+      { new: true }
+    );
+
+    console.log("updatedRecruiter", updatedRecruiter);
+
+    if (!updatedRecruiter) {
+      throw new APIError(
+        `Failed to update recruiter with the new job`,
+        httpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
     response.payLoad = createdJob;
     res.status(httpStatus.OK);
     res.send(response);
