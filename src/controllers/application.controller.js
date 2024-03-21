@@ -65,60 +65,94 @@ const User = require("../models/user.model");
 
 exports.apply = async (req, res, next) => {
   try {
-    if (!mongoose.Types.ObjectId.isValid(req.params.jobId))
-      throw new APIError(`Invalid jobId`, httpStatus.BAD_REQUEST);
+    const { jobId } = req.params;
+    console.log("🚀 ~ exports.apply= ~ req.user:", req.user)
+    const applicantId = req.user._id;
 
-    const response = { payLoad: {} };
-    const { phone } = req.body;
-    const existingApplication = await Application.findOne({ phone });
-
-    if (existingApplication) {
-      existingApplication.appliedJobs.push(req.params.jobId);
-      const savedApplication = await existingApplication.save();
-
-      if (!savedApplication) {
-        throw new APIError(`Job not created`, httpStatus.INTERNAL_SERVER_ERROR);
-      }
-
-      response.payLoad = savedApplication;
-      res.status(httpStatus.OK);
-      res.send(response);
-    } else {
-      const user = await User.findOne({ phone }).exec();
-      if (!user) {
-        throw new APIError(
-          `User with this phone number doesn't exist!`,
-          httpStatus.BAD_REQUEST
-        );
-      }
-
-      req.user = user;
-      console.log("req.user", req.user, user);
-      const applicationData = req.body;
-      applicationData.jobId = req.params.jobId;
-      const jobData = await Job.findById(req.params.jobId).exec();
-      if (!jobData) {
-        throw new APIError(`Invalid jobId`, httpStatus.INTERNAL_SERVER_ERROR);
-      }
-
-      applicationData.recruiterId = jobData.recruiter;
-      applicationData.applicantId = req.user._id;
-
-      const application = new Application(applicationData);
-      const savedApplication = await application.save();
-
-      if (!savedApplication) {
-        throw new APIError(`Job not created`, httpStatus.INTERNAL_SERVER_ERROR);
-      }
-
-      response.payLoad = savedApplication;
-      res.status(httpStatus.OK);
-      res.send(response);
+    // Validate Job ID and check if the job exists
+    const job = await Job.findById(jobId);
+    if (!job) {
+      return res.status(404).json({ message: "Job not found" });
     }
+    // Optional: Check for existing application
+    const existingApplication = await Application.findOne({ jobId, applicantId });
+    if (existingApplication) {
+      return res.status(400).json({ message: "You have already applied for this job" });
+    }
+
+    // Create and save the application
+    const applicationData = {
+      jobId,
+      applicantId,
+      recruiterId: job.recruiter,
+      phone:  req.user.phone,
+      name: req.user.name
+      // Assuming recruiter ID is stored in the job
+      // Include additional data from the request
+    };
+    const newApplication = new Application(applicationData);
+    await newApplication.save();
+
+    res.status(201).json({ message: "Application submitted successfully", application: newApplication });
   } catch (error) {
-    console.log(error);
+    console.error("Application submission error: ", error);
     next(error);
   }
+  // try {
+  //   if (!mongoose.Types.ObjectId.isValid(req.params.jobId))
+  //     throw new APIError(`Invalid jobId`, httpStatus.BAD_REQUEST);
+
+  //   const response = { payLoad: {} };
+  //   const { phone } = req.body;
+  //   const existingApplication = await Application.findOne({ phone });
+
+  //   if (existingApplication) {
+  //     existingApplication.appliedJobs.push(req.params.jobId);
+  //     const savedApplication = await existingApplication.save();
+
+  //     if (!savedApplication) {
+  //       throw new APIError(`Job not created`, httpStatus.INTERNAL_SERVER_ERROR);
+  //     }
+
+  //     response.payLoad = savedApplication;
+  //     res.status(httpStatus.OK);
+  //     res.send(response);
+  //   } else {
+  //     const user = await User.findOne({ phone }).exec();
+  //     if (!user) {
+  //       throw new APIError(
+  //         `User with this phone number doesn't exist!`,
+  //         httpStatus.BAD_REQUEST
+  //       );
+  //     }
+
+  //     req.user = user;
+  //     console.log("req.user", req.user, user);
+  //     const applicationData = req.body;
+  //     applicationData.jobId = req.params.jobId;
+  //     const jobData = await Job.findById(req.params.jobId).exec();
+  //     if (!jobData) {
+  //       throw new APIError(`Invalid jobId`, httpStatus.INTERNAL_SERVER_ERROR);
+  //     }
+
+  //     applicationData.recruiterId = jobData.recruiter;
+  //     applicationData.applicantId = req.user._id;
+
+  //     const application = new Application(applicationData);
+  //     const savedApplication = await application.save();
+
+  //     if (!savedApplication) {
+  //       throw new APIError(`Job not created`, httpStatus.INTERNAL_SERVER_ERROR);
+  //     }
+
+  //     response.payLoad = savedApplication;
+  //     res.status(httpStatus.OK);
+  //     res.send(response);
+  //   }
+  // } catch (error) {
+  //   console.log(error);
+  //   next(error);
+  // }
 };
 
 exports.checkUserApplication = async (req, res, next) => {
@@ -151,14 +185,26 @@ exports.checkUserApplication = async (req, res, next) => {
 };
 
 exports.getAppliedJobs = async (req, res, next) => {
+  console.log(
+    "🚀 ~ file: application.controller.js:154 ~ exports.getAppliedJobs= ~ getAppliedJobs:"
+  );
+
   try {
     const { applicantId } = req.params;
+    console.log(
+      "🚀 ~ file: application.controller.js:160 ~ exports.getAppliedJobs= ~ applicantId:",
+      applicantId
+    );
 
     // if (!mongoose.Types.ObjectId.isValid(applicantId)) {
     //   throw new APIError(`Invalid applicantId`, httpStatus.BAD_REQUEST);
     // }
 
     const applications = await Application.find({ applicantId });
+    console.log(
+      "🚀 ~ file: application.controller.js:166 ~ exports.getAppliedJobs= ~ applications:",
+      applications
+    );
 
     const appliedJobIds = applications[0].appliedJobs;
 
@@ -245,29 +291,84 @@ exports.fetchSavedCount = async (req, res, next) => {
 
 exports.getApplicationDetails = async (req, res, next) => {
   try {
-    if (!mongoose.Types.ObjectId.isValid(req.params.jobId))
-      throw new APIError(`Invalid jobId`, httpStatus.BAD_REQUEST);
-    const response = { payLoad: [] };
-    const ObjectID = mongoose.Types.ObjectId;
-    var jobId = req.params.jobId;
-    var query = {
-      jobId: new ObjectID(jobId),
-    };
-    var applications = await Application.find(query);
-    for (let index = 0; index < applications.length; index++) {
-      var applicantId = applications[index]["applicantId"];
-      var applicant = await Applicant.findOne({ id: applicantId }).exec();
-      var convertedApplicationJSON = JSON.parse(
-        JSON.stringify(applications[index])
-      );
-      convertedApplicationJSON.profile_image = applicant.profile_image;
-      response.payLoad.push(convertedApplicationJSON);
-    }
-    res.status(httpStatus.OK);
-    res.send(response);
+    const recruiterId = req.user._id; // Assuming this is how you get the recruiter's ID from the request
+    console.log("🚀 ~ exports.getApplicationDetails= ~ recruiterId:", recruiterId)
+
+    const applicationsWithDetails = await Application.aggregate([
+      {
+        $match: {
+          recruiterId: mongoose.Types.ObjectId(recruiterId)
+        }
+      },
+      {
+        $lookup: {
+          from: "users", // Adjust this to match the collection where applicant details are stored
+          localField: "applicantId",
+          foreignField: "_id",
+          as: "applicantDetails"
+        }
+      },
+      { $unwind: "$applicantDetails" },
+      {
+        $lookup: {
+          from: "jobs", // This should be the collection where job details are stored
+          localField: "jobId",
+          foreignField: "_id",
+          as: "jobDetails"
+        }
+      },
+      { $unwind: "$jobDetails" }, // Deconstruct jobDetails array
+      {
+        $project: {
+          // Specify the fields to include in the response
+          // Adjust these according to the actual fields you want to include
+          "jobDetails._id": 1,
+          "jobDetails.title": 1,
+          "jobDetails.description": 1,
+          "jobDetails.location": 1,
+          "applicantDetails.name": 1,
+          "applicantDetails.email": 1,
+          "applicantDetails.phone": 1,
+          // Add any other job details you wish to include
+        }
+      }
+    ]);
+
+    res.status(200).json({
+       applicationsWithDetails
+    });
   } catch (error) {
-    next(error);
+    console.error("Error fetching applications: ", error);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching application details",
+      error: error.message
+    });
   }
+  // try {
+  //   if (!mongoose.Types.ObjectId.isValid(req.params.jobId))
+  //     throw new APIError(`Invalid jobId`, httpStatus.BAD_REQUEST);
+  //   const response = { payLoad: [] };
+  //   const ObjectID = mongoose.Types.ObjectId;
+  //   var jobId = req.params.jobId;
+  //   var query = {
+  //     jobId: new ObjectID(jobId),
+  //   };
+  //   var applications = await Application.find(query);
+  //   for (let index = 0; index < applications.length; index++) {
+  //     var applicantId = applications[index]["applicantId"];
+  //     var applicant = await Applicant.findOne({ id: applicantId }).exec();
+  //     var convertedApplicationJSON = JSON.parse(
+  //       JSON.stringify(applications[index])
+  //     );
+  //     convertedApplicationJSON.profile_image = applicant.profile_image;
+  //     response.payLoad.push(convertedApplicationJSON);
+  //   }
+  //   res.status(httpStatus.OK);
+  //   res.send(response);
+  // } catch (error) {
+  //   next(error);
+  // }
 };
 
 exports.fetchSaved = async (req, res, next) => {

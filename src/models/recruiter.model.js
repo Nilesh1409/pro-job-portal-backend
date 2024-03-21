@@ -33,10 +33,12 @@ const recruiterSchema = new Schema(
       type: String,
       default: "default-profile-image.jpg",
     },
-    jobs: {
-      type: Schema.Types.ObjectId,
-      ref: "Job",
-    },
+    jobs: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Job",
+      },
+    ],
     banner_image: {
       type: String,
     },

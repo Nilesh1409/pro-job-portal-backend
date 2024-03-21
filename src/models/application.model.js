@@ -12,7 +12,7 @@ const applicationSchema = new Schema(
       ref: "Job",
       required: true,
     },
-    applicantId: {
+    applicantId:  {
       type: Schema.Types.ObjectId,
       ref: "User",
       required: true,

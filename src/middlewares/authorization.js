@@ -15,12 +15,15 @@ const opts = {
 };
 
 passport.use(new JwtStrategy(opts, (jwt_payload, done) => {
+  // console.log("🚀 ~ passport.use ~ jwt_payload:", jwt_payload)
   // console.log("in my auth function")
   User.findById(jwt_payload.sub, (err, user) => {
+    // console.log("🚀 ~ User.findById ~ jwt_payload:", jwt_payload)
     if (err) {
       return done(err, false);
     }
     if (user) {
+      // console.log("🚀 ~ User.findById ~ user:", user)
       jwt_payload.user = user
       return done(null, user);
     } else {
@@ -31,6 +34,7 @@ passport.use(new JwtStrategy(opts, (jwt_payload, done) => {
 
 // handleJWT with roles
 const handleJWT = (req, res, next, roles) => async (err, user, info) => {
+  // console.log("🚀 ~ handleJWT ~ req:",user)
   // console.log('in auth 1')
 
   const error = err || info
@@ -58,9 +62,11 @@ const handleJWT = (req, res, next, roles) => async (err, user, info) => {
 
   return next()
 }
+   
 
 // exports the middleware
 const authorize = (roles = User.roles) => (req, res, next) => {
+console.log("🚀 ~ authorize ~ roles:", roles)
 // console.log("in auth 0",req.body)
   passport.authenticate(
     'jwt',

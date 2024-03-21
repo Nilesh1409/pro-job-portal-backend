@@ -59,14 +59,14 @@ module.exports = {
         .keys({
           first: Joi.string().max(128).required(),
           last: Joi.string().max(128).required(),
-        })
-        .required(),
+        }),
+        
       phone: Joi.number()
         .integer()
         .positive()
-        .min(1000000000)
-        .max(9999999999)
-        .required(),
+        .min(1000000000),
+        // .max(+999999999999),
+        
       email: Joi.string().email(),
       address: Joi.object().keys({
         street: Joi.string().max(128),

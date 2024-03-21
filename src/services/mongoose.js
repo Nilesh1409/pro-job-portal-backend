@@ -24,7 +24,7 @@ exports.connect = () => {
 
   mongoose.connect(
     mongoURI,
-    { dbName: "proconsultant", useCreateIndex: true },
+    { dbName: "proconsultant", useCreateIndex: true, useFindAndModify: false },
     {
       keepAlive: 1,
       useNewUrlParser: true,

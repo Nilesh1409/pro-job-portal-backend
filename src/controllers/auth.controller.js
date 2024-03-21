@@ -11,15 +11,24 @@ exports.register = async (req, res, next) => {
   console.log("in register function");
   try {
     const userData = req.body;
+    const { phone } = userData;
+    const userExist = await User.findOne({ phone: phone });
+    console.log("🚀 ~ exports.register= ~ userExist:", userExist);
+
+    if (userExist) {
+      res.status(409).send({ message: "Mobile number already exists." });
+    }
+
     const user = new User(userData);
     console.log("user data while creating", user, req.body);
     const savedUser = await user.save();
-    // console.log("saved user", savedUser);
+    console.log("saved user", savedUser);
     userData.id = savedUser.id;
     const userDetails =
       savedUser.role === "applicant"
         ? new Applicant(userData)
         : new Recruiter(userData);
+    console.log("🚀 ~ exports.register= ~ userDetails:", userDetails);
     const savedUserDetails = await userDetails.save();
     const response = {
       account: savedUser.transform(),
