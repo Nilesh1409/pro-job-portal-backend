@@ -6,10 +6,71 @@ const sql = require("./../services/sql");
 const APIError = require("../utils/APIError");
 const Job = require("../models/job.model");
 const Applicant = require("../models/applicant.model");
+const Recruiter = require("../models/recruiter.model");
 // const // Redisclient = require('../services/redis')
 
 exports.get = async (req, res, next) => {
+
   try {
+    console.log("in get job function");
+    // Assuming `req.user._id` contains the ID of the recruiter
+    const recruiterId = req.user._id;
+
+    const jobsWithApplicationCount = await Job.aggregate([
+      // Match jobs where the recruiter is the current user
+      { $match: { recruiter: mongoose.Types.ObjectId(recruiterId) } },
+      // Lookup (join) with the Application collection
+      {
+        $lookup: {
+          from: "applications", // Ensure this matches your collection name
+          localField: "_id", // Field from the jobs collection
+          foreignField: "jobId", // Field from the applications collection matching jobs._id
+          as: "applications" // The array where the matched documents will be placed
+        }
+      },
+      // Add applicationCount field while keeping all original job details
+      {
+        $addFields: {
+          applicationCount: { $size: "$applications" }
+        }
+      },
+      // Optionally, if you don't want to send the applications array
+      {
+        $project: {
+          applications: 0 // Exclude the applications array from the output
+        }
+      }
+    ]);
+
+    const response = {
+      payLoad: jobsWithApplicationCount
+    };
+
+    console.log("🚀 ~ file: jobs.controller.js:18 ~ exports.get= ~ response.payLoad:", response.payLoad);
+    res.status(httpStatus.OK).send(jobsWithApplicationCount);
+  } catch (error) {
+    console.error("Error in getting jobs: ", error);
+    next(error);
+  }
+//   try {
+//     // console.log('\n\n\n', req.user.role, '\n\n\n')
+//     console.log("in get job funtion");
+//     const response = { payLoad: {} };
+//     const jobs = await Job.find().exec();
+//     response.payLoad = jobs;
+//     console.log(
+//       "🚀 ~ file: jobs.controller.js:18 ~ exports.get= ~ response.payLoad:",
+//       response.payLoad
+//     );
+//     res.status(httpStatus.OK);
+//     res.send(response);
+//   } catch (error) {
+//     next(error);
+//   }
+};
+
+exports.getAllJob = async (req, res, next) => {
+    try {
     // console.log('\n\n\n', req.user.role, '\n\n\n')
     console.log("in get job funtion");
     const response = { payLoad: {} };
@@ -24,30 +85,118 @@ exports.get = async (req, res, next) => {
   } catch (error) {
     next(error);
   }
-};
+}
+
+// exports.post = async (req, res, next) => {
+//   console.log("in job post", req.body);
+//   try {
+//     // console.log('\n\n\n', req.user.role, '\n\n\n')
+//     if (req.user.role !== "recruiter")
+//       throw new APIError(
+//         `Unauthorized only Recruiter can create a job`,
+//         httpStatus.UNAUTHORIZED
+//       );
+//     const response = { payLoad: {} };
+//     req.body.recruiter = req.user._id;
+//     const job = new Job(req.body);
+//     console.log("Job", job);
+
+//     const createdJob = await job.save();
+//     console.log("createdJob45", createdJob);
+//     if (!createdJob) {
+//       throw new APIError(`Job not created`, httpStatus.INTERNAL_SERVER_ERROR);
+//     }
+//     console.log("req.user._id,", req.user._id);
+//     const updatedRecruiter = await Recruiter.findByIdAndUpdate(
+//       req.user._id,
+//       { $push: { jobs: createdJob._id } },
+//       { new: true }
+//     );
+
+//     console.log("updatedRecruiter", updatedRecruiter);
+
+//     if (!updatedRecruiter) {
+//       throw new APIError(
+//         `Failed to update recruiter with the new job`,
+//         httpStatus.INTERNAL_SERVER_ERROR
+//       );
+//     }
+//     response.payLoad = createdJob;
+//     res.status(httpStatus.OK);
+//     res.send(response);
+//   } catch (error) {
+//     next(error);
+//   }
+//   console.log("🚀 ~ exports.post= ~ req.user._id,:", req.user._id);
+//   console.log("🚀 ~ exports.post= ~ req.user._id,:", req.user._id);
+// };
 
 exports.post = async (req, res, next) => {
   console.log("in job post", req.body);
   try {
-    // console.log('\n\n\n', req.user.role, '\n\n\n')
-    if (req.user.role !== "recruiter")
+    // Check if the user is authorized to create a job
+    if (req.user.role !== "recruiter") {
       throw new APIError(
         `Unauthorized only Recruiter can create a job`,
         httpStatus.UNAUTHORIZED
       );
-    const response = { payLoad: {} };
+    }
+
+    // Set the recruiter ID in the job details
     req.body.recruiter = req.user._id;
     const job = new Job(req.body);
     console.log("Job", job);
 
+    // Save the new job
     const createdJob = await job.save();
     console.log("createdJob", createdJob);
-    if (!createdJob)
+
+    // Validate if the job was created successfully
+    if (!createdJob) {
       throw new APIError(`Job not created`, httpStatus.INTERNAL_SERVER_ERROR);
-    response.payLoad = createdJob;
-    res.status(httpStatus.OK);
-    res.send(response);
+    }
+
+    // Update the recruiter with the new job
+    // const updatedRecruiter = await Recruiter.findByIdAndUpdate(
+    //   req.user._id,
+    //   { $push: { jobs: createdJob._id } },
+    //   { new: true }
+    // );
+    let updatedRecruiter;
+    console.log("🚀 ~ exports.post= ~ req.user._id:", req.user._id)
+    const recruiter = await Recruiter.findOne({ id: req.user._id });
+    if (recruiter) {
+      recruiter.jobs.push(createdJob._id);
+      updatedRecruiter = await recruiter.save();
+      console.log("🚀 ~ exports.post= ~ updatedRecruiter:", updatedRecruiter);
+      // Check and proceed with updatedRecruiter
+    } else {
+      throw new APIError(
+        `Failed to update job. No recruiter found`,
+        httpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+
+    // Validate if the recruiter was updated successfully
+    if (!updatedRecruiter) {
+      throw new APIError(
+        `Failed to update recruiter with the new job`,
+        httpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+
+    // Prepare and send the response
+    const response = {
+      payLoad: createdJob,
+      message: "Job created and recruiter updated successfully",
+    };
+
+    res.status(httpStatus.OK).send(response);
   } catch (error) {
+    // Log the error for debugging purposes
+    console.error("Error in creating job: ", error);
+
+    // Pass the error to the error handling middleware
     next(error);
   }
 };

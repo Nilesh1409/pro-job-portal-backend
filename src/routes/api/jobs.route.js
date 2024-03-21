@@ -21,8 +21,12 @@ const recommendationCache = require("../../middlewares/recommendationCache");
 // router.get('/saved/count', auth(['applicant']), applicationController.fetchSavedCount)
 // router.get('/saved', auth(['applicant']), applicationController.fetchSaved)
 console.log("in job file");
-router.get("/", auth(), jobsController.get);
+router.get(
+  "/",
+  jobsController.getAllJob)
+router.get("/posted", auth(), jobsController.get);
 router.post("/", auth(["recruiter"]), validator(create), jobsController.post);
+router.get("/applications", auth(["recruiter"]),  applicationController.getApplicationDetails);
 // router.get('/recommendation', auth(['applicant']), recommendationCache, jobsController.recommendation)
 // router.get('/findByRecruiter', auth(['recruiter']), jobsController.jobsByRecruiter)
 router.get("/:jobId", auth(), validator(jobId), jobsController.getOne);
@@ -33,9 +37,9 @@ router.get("/:jobId", auth(), validator(jobId), jobsController.getOne);
 // router.post('/:jobId/unsave', auth(['applicant']), validator(jobId), applicationController.unsave)
 router.post(
   "/apply/:jobId",
-  //   auth(["applicant"]),
+    auth(["applicant"]),
   //   validator(jobId),
-  validator(apply),
+  // validator(apply),
   applicationController.apply
 );
 router.post(
@@ -43,6 +47,7 @@ router.post(
   validator(AppliedForJOb),
   applicationController.checkUserApplication
 );
+console.log("in jobs router");
 router.get(
   "/appliedJobs/:applicantId",
   // validator(AppliedForJOb),
